@@ -1,15 +1,9 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# ### Extract Features
-# Here we will be using Mel-Frequency Cepstral Coefficients(MFCC) from the audio 
-# samples.
-# The MFCC summarises the frequency distribution across the window size, so it is possible to analyse both the frequency and time characteristics of the sound. These audio representations will allow us to identify features for classification.
-
-# In[23]:
+# In[1]:
 
 
-#### Extracting MFCC's For every audio file
 import pandas as pd
 import os
 import librosa
@@ -19,7 +13,7 @@ metadata=pd.read_csv('UrbanSound8K/UrbanSound8K.csv')
 metadata.head()
 
 
-# In[24]:
+# In[2]:
 
 
 def features_extractor(file):
@@ -31,22 +25,23 @@ def features_extractor(file):
     
 
 
-# In[40]:
+# In[3]:
 
 
 import numpy as np
 from tqdm import tqdm
-### Now we iterate through every audio file and extract features 
-### using Mel-Frequency Cepstral Coefficients
+
 extracted_features=[]
+c=1
 for index_num,row in tqdm(metadata.iterrows()):
     file_name = os.path.join(os.path.abspath(audio_dataset_path),'fold'+str(row["fold"])+'/',str(row["slice_file_name"])).replace("\\","/")
     final_class_labels=row["class"]
     data=features_extractor(file_name)
     extracted_features.append([data,final_class_labels])
+    c+=1
 
 
-# In[142]:
+# In[4]:
 
 
 ### converting extracted_features to Pandas dataframe
@@ -54,7 +49,7 @@ extracted_features_df=pd.DataFrame(extracted_features,columns=['feature','class'
 extracted_features_df.head()
 
 
-# In[206]:
+# In[5]:
 
 
 ### Split the dataset into independent and dependent dataset
@@ -62,37 +57,35 @@ X=np.array(extracted_features_df['feature'].tolist())
 y=np.array(extracted_features_df['class'].tolist())
 
 
-# In[207]:
+# In[6]:
 
 
 X.shape
 
 
-# In[208]:
+# In[7]:
 
 
 y
 
 
-# In[209]:
+# In[8]:
 
 
 ### Label Encoding
-###y=np.array(pd.get_dummies(y))
-### Label Encoder
 from tensorflow.keras.utils import to_categorical
 from sklearn.preprocessing import LabelEncoder
 labelencoder=LabelEncoder()
 y=to_categorical(labelencoder.fit_transform(y))
 
 
-# In[211]:
+# In[9]:
 
 
 y
 
 
-# In[148]:
+# In[10]:
 
 
 ### Train Test Split
@@ -100,37 +93,37 @@ from sklearn.model_selection import train_test_split
 X_train,X_test,y_train,y_test=train_test_split(X,y,test_size=0.2,random_state=0)
 
 
-# In[126]:
+# In[11]:
 
 
 X_train
 
 
-# In[127]:
+# In[12]:
 
 
 y
 
 
-# In[128]:
+# In[13]:
 
 
 X_train.shape
 
 
-# In[129]:
+# In[14]:
 
 
 X_test.shape
 
 
-# In[130]:
+# In[15]:
 
 
 y_train.shape
 
 
-# In[131]:
+# In[16]:
 
 
 y_test.shape
@@ -138,14 +131,13 @@ y_test.shape
 
 # ### Model Creation
 
-# In[132]:
+# In[17]:
 
 
 import tensorflow as tf
-print(tf.__version__)
 
 
-# In[149]:
+# In[18]:
 
 
 from tensorflow.keras.models import Sequential
@@ -154,20 +146,14 @@ from tensorflow.keras.optimizers import Adam
 from sklearn import metrics
 
 
-# In[150]:
+# In[19]:
 
 
 ### No of classes
 num_labels=y.shape[1]
 
 
-# In[ ]:
-
-
-
-
-
-# In[151]:
+# In[20]:
 
 
 model=Sequential()
@@ -189,19 +175,19 @@ model.add(Dense(num_labels))
 model.add(Activation('softmax'))
 
 
-# In[152]:
+# In[21]:
 
 
 model.summary()
 
 
-# In[153]:
+# In[22]:
 
 
 model.compile(loss='categorical_crossentropy',metrics=['accuracy'],optimizer='adam')
 
 
-# In[181]:
+# In[25]:
 
 
 ## Trianing my model
@@ -222,29 +208,25 @@ duration = datetime.now() - start
 print("Training completed in time: ", duration)
 
 
-# In[182]:
+# In[26]:
 
 
 test_accuracy=model.evaluate(X_test,y_test,verbose=0)
 print(test_accuracy[1])
 
 
-# In[156]:
-
-
-prediction_feature.shape
-
-
-# In[190]:
+# In[28]:
 
 
 X_test[1]
 
 
-# In[185]:
+# In[81]:
 
 
-model.predict_classes(X_test)
+pred = model.predict(X_test)
+pred = np.argmax(pred,axis=1)
+pred
 
 
 # ### Testing Some Test Audio Data
@@ -254,10 +236,10 @@ model.predict_classes(X_test)
 # - predict the classes
 # - Invere transform your Predicted Label
 
-# In[215]:
+# In[86]:
 
 
-filename="UrbanSound8K/drilling_1.wav"
+filename="UrbanSound8K/dog_bark2.wav"
 audio, sample_rate = librosa.load(filename, res_type='kaiser_fast') 
 mfccs_features = librosa.feature.mfcc(y=audio, sr=sample_rate, n_mfcc=40)
 mfccs_scaled_features = np.mean(mfccs_features.T,axis=0)
@@ -266,7 +248,10 @@ print(mfccs_scaled_features)
 mfccs_scaled_features=mfccs_scaled_features.reshape(1,-1)
 print(mfccs_scaled_features)
 print(mfccs_scaled_features.shape)
-predicted_label=model.predict_classes(mfccs_scaled_features)
+predicted_label=model.predict(mfccs_scaled_features)
+predicted_label=np.argmax(predicted_label,axis=1)
+predicted_label = np.array(predicted_label)
+predicted_label = predicted_label.flatten()
 print(predicted_label)
 prediction_class = labelencoder.inverse_transform(predicted_label) 
 prediction_class
